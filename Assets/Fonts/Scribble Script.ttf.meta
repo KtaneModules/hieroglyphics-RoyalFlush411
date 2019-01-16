@@ -1,0 +1,21 @@
+fileFormatVersion: 2
+guid: 24cc08e50bdb04cf8b75a86616611583
+timeCreated: 1543916112
+licenseType: Free
+TrueTypeFontImporter:
+  serializedVersion: 4
+  fontSize: 16
+  forceTextureCase: -2
+  characterSpacing: 0
+  characterPadding: 1
+  includeFontData: 1
+  fontName: Scribble Script
+  fontNames:
+  - Scribble Script
+  fallbackFontReferences: []
+  customCharacters: 
+  fontRenderingMode: 0
+  ascentCalculationMode: 1
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
