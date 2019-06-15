@@ -18,8 +18,8 @@ public class hieroglyphicsScript : MonoBehaviour
     public GameObject buttonNonAnim;
     public GameObject buttonAnim;
 
-    private string[] potentialHieroglpyhs = new string[18] {"A","B","C","D","E","K","L","N","U","V","W","Y","R","T","Q","O","M","G"};
-    private string[] hieroglpyhicNames = new string[18] {"Male","Bull","Urn","Eye of Horus","Ankh","Goose","Lion","Water","Head of Cow","Mosaic","Lasso","Two Reeds","Scales","Bone","Triangle","Horn","Owl","Tent"};
+    private string[] potentialHieroglyphs = new string[18] {"A","B","C","D","E","K","L","N","U","V","W","Y","R","T","Q","O","M","G"};
+    private string[] hieroglyphicNames = new string[18] {"Male","Bull","Urn","Eye of Horus","Ankh","Goose","Lion","Water","Head of Cow","Mosaic","Lasso","Two Reeds","Scales","Bone","Triangle","Horn","Owl","Tent"};
     public TextMesh[] hieroglyphsText;
     private int[] hieroglyphsSumInt = new int[3];
     public TextMesh[] hieroglyphsSum;
@@ -79,8 +79,8 @@ public class hieroglyphicsScript : MonoBehaviour
                 index = UnityEngine.Random.Range(0,17);
             }
             chosenIndices.Add(index);
-            chosenHieroglyphs[i] = potentialHieroglpyhs[index];
-            chosenHieroglyphNames[i] = hieroglpyhicNames[index];
+            chosenHieroglyphs[i] = potentialHieroglyphs[index];
+            chosenHieroglyphNames[i] = hieroglyphicNames[index];
         }
         chosenIndices.Clear();
 
@@ -98,10 +98,10 @@ public class hieroglyphicsScript : MonoBehaviour
 
         for(int i = 0; i <= 13; i++)
         {
-            if(chosenHieroglyphNames.Contains(hieroglpyhicNames[i]))
+            if(chosenHieroglyphNames.Contains(hieroglyphicNames[i]))
             {
-                priorityHieroglyph = hieroglpyhicNames[i];
-                priorityHieroglyphValue = Array.FindIndex(chosenHieroglyphNames, x => x.Contains(hieroglpyhicNames[i])) + 1;
+                priorityHieroglyph = hieroglyphicNames[i];
+                priorityHieroglyphValue = Array.FindIndex(chosenHieroglyphNames, x => x.Contains(hieroglyphicNames[i])) + 1;
                 break;
             }
         }
@@ -405,6 +405,79 @@ public class hieroglyphicsScript : MonoBehaviour
         else
         {
             positionsSet = false;
+        }
+    }
+
+    string TwitchHelpMessage = "Submit a full solution by using !{0} submit right and left on 8 or !{0} submit r,l,8 where locks are interacted in reading order. You may interact with each item individually using !{0} set anubis centre, !{0} set horus centre, and !{0} submit on 8.";
+
+    IEnumerator DetermineButtonPress(string cmd, int btn)
+    {
+        if (!lockPositionLog.Contains(cmd))
+            yield break;
+        var move = Array.IndexOf(lockPositionLog, cmd);
+        var point = pointerMoves[btn];
+        if (point == 3 && move == 1)
+            move = 3;
+        if (move > point)
+            move = move - point;
+        else if (move < point)
+            move = move + 4 - point;
+        else
+        {
+            yield return null;
+            yield break;
+        }
+        yield return null;
+        for (int i = 0; i < move; i++)
+        {
+            yield return animationButtons[btn].OnInteract();
+            yield return new WaitUntil(() => !moving);
+        }
+    }
+
+    IEnumerator ProcessTwitchCommand(string command)
+    {
+        command = command.ToLowerInvariant().Replace("submit ", "").Replace("set ", "").Replace("center","centre");
+        var list = new List<KMSelectable>();
+        if (command.StartsWith("anubis") || command.StartsWith("horus"))
+        {
+            var dir = command.StartsWith("anubis") ? 0 : 1;
+            command = command.Replace("anubis ", "").Replace("horus ", "");
+            var compare = DetermineButtonPress(command, dir);
+            while (compare.MoveNext())
+                yield return compare.Current;
+            yield break;
+        }
+        System.Text.RegularExpressions.Regex regex = new System.Text.RegularExpressions.Regex("^(left|right|centre|l|r|c)(?: |)(?:and|&|)(?: |)(left|right|centre|l|r|c) on ([0-9])$");
+        var split = new List<string>();
+        if (regex.Match(command).Success)
+        {
+            foreach (System.Text.RegularExpressions.Group match in regex.Match(command).Groups)
+                split.Add(match.Value);
+            split.RemoveAt(0);
+        }
+        else
+            split = command.Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries).ToList();
+        split = split.Select(x => x.Substring(0, 1)).ToList();
+        if (split.Count == 3)
+        {
+            for (int i = 0; i < 2; i++)
+            {
+                var index = lockPositionLog.First(x => x[0] == split[i][0]);
+                if (index == null) yield break;
+                var compare = DetermineButtonPress(index, i);
+                while (compare.MoveNext())
+                    yield return compare.Current;
+            }
+            command = "on " + split.Last();
+        }
+        int num;
+        if (command.StartsWith("on ") && command.Length == 4 && int.TryParse(command[3].ToString(), out num))
+        {
+            while (!Mathf.FloorToInt(Bomb.GetTime() % 10).Equals(num));
+                yield return "trycancel";
+            yield return mainButton.OnInteract();
+            yield return "solve";
         }
     }
 }
