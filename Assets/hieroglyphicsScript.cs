@@ -178,43 +178,27 @@ public class hieroglyphicsScript : MonoBehaviour
         CheckValidity();
     }
 
+    public List<int> statementsWithoutOne = new List<int>();
+
+    void CrazyCoeffecientThing()
+    {
+        if(statementsWithoutOne[0]*(statementsWithoutOne[5]*(statementsWithoutOne[10]-statementsWithoutOne[11])-statementsWithoutOne[6]*(statementsWithoutOne[9]-statementsWithoutOne[11])+statementsWithoutOne[7]*(statementsWithoutOne[9]-statementsWithoutOne[10]))-statementsWithoutOne[1]*(statementsWithoutOne[4]*(statementsWithoutOne[10]-statementsWithoutOne[11])-statementsWithoutOne[6]*(statementsWithoutOne[8]-statementsWithoutOne[11])+statementsWithoutOne[7]*(statementsWithoutOne[8]-statementsWithoutOne[10]))+statementsWithoutOne[2]*(statementsWithoutOne[4]*(statementsWithoutOne[9]-statementsWithoutOne[11])-statementsWithoutOne[5]*(statementsWithoutOne[8]-statementsWithoutOne[11])+statementsWithoutOne[7]*(statementsWithoutOne[8]-statementsWithoutOne[9]))-statementsWithoutOne[3]*(statementsWithoutOne[4]*(statementsWithoutOne[9]-statementsWithoutOne[10])-statementsWithoutOne[5]*(statementsWithoutOne[8]-statementsWithoutOne[10])+statementsWithoutOne[6]*(statementsWithoutOne[8]-statementsWithoutOne[9])) == 0)
+        {
+            invalid = true;
+        }
+    }
+
     void CheckValidity()
     {
-        int symbol1 = (100 * statementOccurrences[1]) + (10 * statementOccurrences[6]) + statementOccurrences[11];
-        int symbol2 = (100 * statementOccurrences[2]) + (10 * statementOccurrences[7]) + statementOccurrences[12];
-        int symbol3 = (100 * statementOccurrences[3]) + (10 * statementOccurrences[8]) + statementOccurrences[13];
-        int symbol4 = (100 * statementOccurrences[4]) + (10 * statementOccurrences[9]) + statementOccurrences[14];
-        if(symbol1 == 0)
+        for(int i = 1; i < 15; i++)
         {
-            symbol1 = -1;
-        }
-        if(symbol2 == 0)
-        {
-            symbol2 = -1;
-        }
-        if(symbol3 == 0)
-        {
-            symbol3 = -1;
-        }
-        if(symbol4 == 0)
-        {
-            symbol4 = -1;
+            if(i % 5 != 0)
+            {
+                statementsWithoutOne.Add(statementOccurrences[i]);
+            }
         }
 
-        if ( ((symbol1 % symbol2) == 0) ||
-             ((symbol1 % symbol3) == 0) ||
-             ((symbol1 % symbol4) == 0) ||
-             ((symbol2 % symbol3) == 0) ||
-             ((symbol2 % symbol4) == 0) ||
-             ((symbol3 % symbol4) == 0) ||
-             ((symbol2 % symbol1) == 0) ||
-             ((symbol3 % symbol1) == 0) ||
-             ((symbol4 % symbol1) == 0) ||
-             ((symbol3 % symbol2) == 0) ||
-             ((symbol4 % symbol2) == 0) ||
-             ((symbol4 % symbol3) == 0) ||
-             (Math.Min(Math.Min(symbol1, symbol2), Math.Min(symbol3, symbol4)) < 0 )  )
-             {  invalid = true; }
+        CrazyCoeffecientThing();
 
         if(!invalid)
         {
@@ -229,6 +213,7 @@ public class hieroglyphicsScript : MonoBehaviour
         }
         else
         {
+            statementsWithoutOne.Clear();
             Start();
         }
     }
