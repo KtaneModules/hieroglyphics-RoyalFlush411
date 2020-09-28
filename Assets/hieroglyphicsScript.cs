@@ -393,76 +393,47 @@ public class hieroglyphicsScript : MonoBehaviour
         }
     }
 
-    string TwitchHelpMessage = "Submit a full solution by using !{0} submit right and left on 8 or !{0} submit r,l,8 where locks are interacted in reading order. You may interact with each item individually using !{0} set anubis centre, !{0} set horus centre, and !{0} submit on 8.";
+    public readonly string TwitchHelpMessage = "!{0} <anubis> <horus> <digit> [set the anubis and horus lock positions then submit when timer matches the digit]";
 
-    IEnumerator DetermineButtonPress(string cmd, int btn)
+    readonly string[] positions = new[] { "left", "center", "right" };
+    bool GetPosition(string target, out int index)
     {
-        if (!lockPositionLog.Contains(cmd))
-            yield break;
-        var move = Array.IndexOf(lockPositionLog, cmd);
-        var point = pointerMoves[btn];
-        if (point == 3 && move == 1)
-            move = 3;
-        if (move > point)
-            move = move - point;
-        else if (move < point)
-            move = move + 4 - point;
-        else
+        target = target.Replace("middle", "center").Replace("centre", "center");
+        index = Array.FindIndex(positions, position => target[0] == position[0] || target == position);
+        return index != -1;
+    }
+
+    public IEnumerator ProcessTwitchCommand(string inputCommand)
+    {
+        string[] split = inputCommand.ToLowerInvariant().Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+
+        int anubis, horus, digit;
+        if (split.Length == 3 && GetPosition(split[0], out anubis) && GetPosition(split[1], out horus) && int.TryParse(split[2], out digit))
         {
             yield return null;
-            yield break;
-        }
-        yield return null;
-        for (int i = 0; i < move; i++)
-        {
-            yield return animationButtons[btn].OnInteract();
-            yield return new WaitUntil(() => !moving);
+
+            int[] lockPositions = new[] { anubis, horus };
+            for (int i = 0; i < 2; i++)
+            {
+                if (lockPositions[i] == 1 && (pointerMoves[i] == 1 || pointerMoves[i] == 3)) continue;
+
+                int presses = ((lockPositions[i] - pointerMoves[i]) % 4 + 4) % 4;
+                for (int j = 0; j < presses; j++)
+                {
+                    animationButtons[i].OnInteract();
+                    while (moving)
+                        yield return true;
+                }
+            }
+
+            while (Mathf.FloorToInt(Bomb.GetTime()) % 10 != digit)
+                yield return true;
+            mainButton.OnInteract();
         }
     }
 
-    IEnumerator ProcessTwitchCommand(string command)
+    public IEnumerator TwitchHandleForcedSolve()
     {
-        command = command.ToLowerInvariant().Replace("submit ", "").Replace("set ", "").Replace("center","centre");
-        var list = new List<KMSelectable>();
-        if (command.StartsWith("anubis") || command.StartsWith("horus"))
-        {
-            var dir = command.StartsWith("anubis") ? 0 : 1;
-            command = command.Replace("anubis ", "").Replace("horus ", "");
-            var compare = DetermineButtonPress(command, dir);
-            while (compare.MoveNext())
-                yield return compare.Current;
-            yield break;
-        }
-        System.Text.RegularExpressions.Regex regex = new System.Text.RegularExpressions.Regex("^(left|right|centre|l|r|c)(?: |)(?:and|&|)(?: |)(left|right|centre|l|r|c) on ([0-9])$");
-        var split = new List<string>();
-        if (regex.Match(command).Success)
-        {
-            foreach (System.Text.RegularExpressions.Group match in regex.Match(command).Groups)
-                split.Add(match.Value);
-            split.RemoveAt(0);
-        }
-        else
-            split = command.Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries).ToList();
-        split = split.Select(x => x.Substring(0, 1)).ToList();
-        if (split.Count == 3)
-        {
-            for (int i = 0; i < 2; i++)
-            {
-                var index = lockPositionLog.First(x => x[0] == split[i][0]);
-                if (index == null) yield break;
-                var compare = DetermineButtonPress(index, i);
-                while (compare.MoveNext())
-                    yield return compare.Current;
-            }
-            command = "on " + split.Last();
-        }
-        int num;
-        if (command.StartsWith("on ") && command.Length == 4 && int.TryParse(command[3].ToString(), out num))
-        {
-            while (!Mathf.FloorToInt(Bomb.GetTime() % 10).Equals(num));
-                yield return "trycancel";
-            yield return mainButton.OnInteract();
-            yield return "solve";
-        }
+        yield return ProcessTwitchCommand(string.Join(" ", correctLockPosition.Select(index => positions[index]).ToArray()) + " " + (int) correctPressTime);
     }
 }
